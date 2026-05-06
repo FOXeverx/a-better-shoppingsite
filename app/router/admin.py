@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 import sys
 from pathlib import Path
 
@@ -53,7 +54,7 @@ async def get_sales_trend(
 @router.get("/users")
 async def get_users(
     role: Optional[str] = Query(None),
-    is_active: Optional[bool] = Query(None),
+    include_inactive: bool = Query(False),
     page: int = Query(1),
     page_size: int = Query(20),
     current_user: User = Depends(require_role("admin")),
@@ -62,7 +63,7 @@ async def get_users(
     users = UserService.get_users(
         db=db,
         role=role,
-        is_active=is_active,
+        is_active=True if not include_inactive else None,
         page=page,
         page_size=page_size
     )
@@ -85,12 +86,16 @@ async def get_users(
 @router.get("/users/simple")
 async def get_users_simple(
     search: Optional[str] = Query(None),
+    include_inactive: bool = Query(False),
     page: int = Query(1),
     page_size: int = Query(20),
     current_user: User = Depends(require_role("sales", "admin")),
     db: Session = Depends(get_db)
 ):
     query = db.query(User)
+    
+    if not include_inactive:
+        query = query.filter(User.is_active == True)
     
     if search:
         query = query.filter(
@@ -289,6 +294,12 @@ class UserCreateRequest(BaseModel):
     role: str = "customer"
 
 
+class UserUpdateRequest(BaseModel):
+    email: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[str] = None
+
+
 @router.post("/user", status_code=status.HTTP_201_CREATED)
 async def create_user(
     req: UserCreateRequest,
@@ -319,6 +330,12 @@ async def create_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username or email already exists"
+        )
 
 
 @router.post("/user/{user_id}/deactivate")
@@ -334,6 +351,72 @@ async def deactivate_user(
             detail="User not found"
         )
     return {"success": True, "message": "User deactivated"}
+
+
+@router.put("/user/{user_id}")
+async def update_user(
+    user_id: int,
+    req: UserUpdateRequest,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db)
+):
+    user = UserService.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    try:
+        user = UserService.admin_update_user(
+            db=db,
+            user=user,
+            email=req.email,
+            password=req.password,
+            role_name=req.role,
+            current_user_id=current_user.id
+        )
+        return {
+            "success": True,
+            "data": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role_name
+            },
+            "message": "User updated successfully"
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already in use"
+        )
+
+
+@router.delete("/user/{user_id}")
+async def delete_user(
+    user_id: int,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db)
+):
+    if current_user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete yourself"
+        )
+    success = UserService.deactivate_user(db, user_id, current_user.id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    return {"success": True, "message": "User deleted"}
 
 
 @router.get("/logs")

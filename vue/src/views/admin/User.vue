@@ -85,7 +85,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, FormInstance, FormRules } from 'element-plus'
-import { getUserList, createUser, deleteUser } from '@/api/admin'
+import { getUserList, createUser, updateUser, deleteUser } from '@/api/admin'
 import type { AdminUser } from '@/types/admin'
 
 const users = ref<AdminUser[]>([])
@@ -100,6 +100,7 @@ const pagination = reactive({
 
 const dialogVisible = ref(false)
 const isEdit = ref(false)
+const editingUserId = ref<number | null>(null)
 const submitting = ref(false)
 
 const formRef = ref<FormInstance>()
@@ -140,6 +141,7 @@ async function fetchUsers() {
 
 function handleAdd() {
   isEdit.value = false
+  editingUserId.value = null
   Object.assign(form, {
     username: '',
     email: '',
@@ -151,6 +153,7 @@ function handleAdd() {
 
 function handleEdit(row: AdminUser) {
   isEdit.value = true
+  editingUserId.value = row.id
   Object.assign(form, {
     username: row.username,
     email: row.email,
@@ -186,14 +189,28 @@ async function handleSubmit() {
     
     submitting.value = true
     try {
-      const res = await createUser(form)
+      let res
+      if (isEdit.value && editingUserId.value) {
+        res = await updateUser(editingUserId.value, {
+          email: form.email,
+          password: form.password || undefined,
+          role: form.role
+        })
+      } else {
+        res = await createUser({
+          username: form.username,
+          email: form.email,
+          password: form.password,
+          role: form.role
+        })
+      }
       if (res.success) {
-        ElMessage.success('创建成功')
+        ElMessage.success(isEdit.value ? '更新成功' : '创建成功')
         dialogVisible.value = false
         fetchUsers()
       }
     } catch (error) {
-      console.error('Failed to create user:', error)
+      console.error('Failed to save user:', error)
     } finally {
       submitting.value = false
     }

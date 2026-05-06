@@ -117,18 +117,65 @@ class UserService:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
             return False
+        
+        original_username = user.username
+        
+        user.username = f"deleted_{user_id}"
+        user.email = f"deleted_{user_id}@deleted"
+        user.password_hash = "$2b$12$invalid.invalid.invalid.invalid.invalid.invalid.."
         user.is_active = False
         db.commit()
         
         log = OperationLog(
             user_id=by_user_id,
-            action="DEACTIVATE_USER",
+            action="DELETE_USER",
             target_type="user",
-            target_id=user_id
+            target_id=user_id,
+            details=f'{{"original_username": "{original_username}"}}'
         )
         db.add(log)
         db.commit()
         return True
+    
+    @staticmethod
+    def admin_update_user(
+        db: Session,
+        user: User,
+        email: str = None,
+        password: str = None,
+        role_name: str = None,
+        current_user_id: int = None
+    ) -> User:
+        if email:
+            existing = UserService.get_user_by_email(db, email)
+            if existing and existing.id != user.id:
+                raise ValueError("Email already in use")
+            user.email = email
+        
+        if password:
+            user.password_hash = AuthService.hash_password(password)
+        
+        if role_name:
+            role = db.query(Role).filter(Role.name == role_name).first()
+            if not role:
+                raise ValueError(f"Role '{role_name}' not found")
+            user.role_id = role.id
+        
+        db.commit()
+        db.refresh(user)
+        
+        if current_user_id:
+            log = OperationLog(
+                user_id=current_user_id,
+                action="UPDATE_USER",
+                target_type="user",
+                target_id=user.id,
+                details=f'{{"email": "{email}", "role": "{role_name}"}}'
+            )
+            db.add(log)
+            db.commit()
+        
+        return user
     
     @staticmethod
     def get_user_profile(db: Session, user_id: int) -> Optional[UserProfile]:

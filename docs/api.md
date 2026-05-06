@@ -537,6 +537,7 @@ Authorization: Bearer <token>
 | 参数 | 类型 | 说明 |
 |------|------|------|
 | search | string | 用户名/邮箱搜索 |
+| include_inactive | boolean | 是否包含已删除/禁用用户，默认 false |
 | page | int | 页码 |
 | page_size | int | 每页数量 |
 
@@ -724,7 +725,16 @@ Authorization: Bearer <token>
 |------|------|
 | **URL** | `/api/admin/users` |
 | **方法** | GET |
-| **权限** | Admin/Sales |
+| **权限** | Admin |
+
+**查询参数**:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `role` | string | 按角色筛选（customer/sales/admin） |
+| `include_inactive` | boolean | 是否包含已删除/禁用用户，默认 false |
+| `page` | integer | 页码，默认 1 |
+| `page_size` | integer | 每页数量，默认 20 |
 
 **响应 (200)**:
 
@@ -746,7 +756,7 @@ Authorization: Bearer <token>
 
 ---
 
-### 30. 创建销售账号
+### 34. 创建用户
 
 | 项目 | 内容 |
 |------|------|
@@ -776,6 +786,79 @@ Authorization: Bearer <token>
     "role": "sales"
   },
   "message": "User created successfully"
+}
+```
+
+**错误响应 (400)**:
+
+```json
+{
+  "detail": "Username or email already exists"
+}
+```
+
+---
+
+### 35. 更新用户
+
+| 项目 | 内容 |
+|------|------|
+| **URL** | `/api/admin/user/{user_id}` |
+| **方法** | PUT |
+| **权限** | Admin |
+
+**请求体（所有字段可选）**:
+
+```json
+{
+  "email": "newemail@shop.com",
+  "password": "newpassword123",
+  "role": "admin"
+}
+```
+
+**响应 (200)**:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "username": "sales1",
+    "email": "newemail@shop.com",
+    "role": "admin"
+  },
+  "message": "User updated successfully"
+}
+```
+
+---
+
+### 36. 删除用户（软删除）
+
+| 项目 | 内容 |
+|------|------|
+| **URL** | `/api/admin/user/{user_id}` |
+| **方法** | DELETE |
+| **权限** | Admin |
+
+> 软删除会将用户设为禁用状态，**清除密码哈希**，并**匿名化用户名和邮箱**，
+> 使其无法登录。被删除用户默认不会显示在用户列表中。
+
+**响应 (200)**:
+
+```json
+{
+  "success": true,
+  "message": "User deleted"
+}
+```
+
+**错误响应 (400)**:
+
+```json
+{
+  "detail": "Cannot delete yourself"
 }
 ```
 

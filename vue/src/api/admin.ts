@@ -34,6 +34,10 @@ export const createUser = (data: AdminUserCreateRequest) => {
   return post<ApiResponse<AdminUser>>('/admin/user', data)
 }
 
+export const updateUser = (id: number, data: { email?: string; password?: string; role?: string }) => {
+  return put<ApiResponse<AdminUser>>(`/admin/user/${id}`, data)
+}
+
 export const getLogs = (params?: { page?: number; page_size?: number }) => {
   return get<ApiResponse<LogEntry[]>>('/admin/logs', { params })
 }
