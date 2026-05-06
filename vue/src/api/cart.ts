@@ -3,7 +3,7 @@ import type { ApiResponse, CartAddRequest, CartUpdateRequest } from '@/types/api
 import type { CartItem, CartSummary } from '@/types/order'
 
 export const getCart = () => {
-  return get<ApiResponse<{ data: CartItem[], summary: CartSummary }>>('/cart')
+  return get<ApiResponse<CartItem[]> & { summary?: CartSummary }>('/cart')
 }
 
 export const addToCart = (data: CartAddRequest) => {

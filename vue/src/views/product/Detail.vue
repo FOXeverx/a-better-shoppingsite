@@ -250,7 +250,7 @@ function recordBrowse() {
       if (res.success) {
         console.log('[Browse] Logged:', res)
       } else {
-        console.error('[Browse] Failed:', res.detail)
+        console.error('[Browse] Failed:', res.message || res.error?.message)
       }
     })
     .catch(err => console.error('[Browse] Error:', err))

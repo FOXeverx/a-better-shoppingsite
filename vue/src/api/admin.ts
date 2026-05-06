@@ -1,7 +1,6 @@
 import { get, post, put, del } from '@/api'
 import type { ApiResponse, AdminUserCreateRequest, StatsParams } from '@/types/api'
 import type { AdminStats, LogEntry, Anomaly, AdminUser, AdminOrder, ProductSales, BrowseLog } from '@/types/admin'
-import type { Pagination } from '@/types/api'
 
 export const getStats = (params?: StatsParams) => {
   return get<ApiResponse<AdminStats>>('/admin/stats', { params })
@@ -12,7 +11,7 @@ export const getProductSales = (params?: { start_date?: string; end_date?: strin
 }
 
 export const getAllOrders = (params?: { page?: number; page_size?: number; status?: string }) => {
-  return get<ApiResponse<{ data: AdminOrder[], pagination: Pagination }>>('/admin/orders', { params: params || {} })
+  return get<ApiResponse<AdminOrder[]>>('/admin/orders', { params: params || {} })
 }
 
 export const getOrderDetail = (id: number) => {
@@ -114,15 +113,15 @@ export interface PurchaseDetail {
 }
 
 export const getUsersSimple = (params?: { search?: string; page?: number; page_size?: number }) => {
-  return get<ApiResponse<{ data: SimpleUser[], pagination: Pagination }>>('/admin/users/simple', { params: params || {} })
+  return get<ApiResponse<SimpleUser[]>>('/admin/users/simple', { params: params || {} })
 }
 
 export const getUserBrowseLogs = (userId: number, params?: { page?: number; page_size?: number }) => {
-  return get<ApiResponse<{ data: UserBrowseLog[], pagination: Pagination }>>(`/admin/user/${userId}/browse`, { params: params || {} })
+  return get<ApiResponse<UserBrowseLog[]>>(`/admin/user/${userId}/browse`, { params: params || {} })
 }
 
 export const getUserLoginLogs = (userId: number, params?: { page?: number; page_size?: number }) => {
-  return get<ApiResponse<{ data: UserLoginLog[], pagination: Pagination }>>(`/admin/user/${userId}/logins`, { params: params || {} })
+  return get<ApiResponse<UserLoginLog[]>>(`/admin/user/${userId}/logins`, { params: params || {} })
 }
 
 export const getUserPurchaseSummary = (userId: number) => {
@@ -130,7 +129,7 @@ export const getUserPurchaseSummary = (userId: number) => {
 }
 
 export const getUserPurchaseByCategory = (userId: number, categoryId: number, params?: { page?: number; page_size?: number }) => {
-  return get<ApiResponse<{ data: PurchaseDetail[], pagination: Pagination }>>(`/admin/user/${userId}/purchases/${categoryId}`, { params: params || {} })
+  return get<ApiResponse<PurchaseDetail[]>>(`/admin/user/${userId}/purchases/${categoryId}`, { params: params || {} })
 }
 
 export interface SecurityThreat {
@@ -163,7 +162,7 @@ export interface ThreatStats {
 }
 
 export const getSecurityThreats = (params?: { threat_type?: string; severity?: string; is_resolved?: boolean; page?: number; page_size?: number }) => {
-  return get<ApiResponse<{ data: SecurityThreat[], pagination: Pagination }>>('/admin/security/threats', { params: params || {} })
+  return get<ApiResponse<SecurityThreat[]>>('/admin/security/threats', { params: params || {} })
 }
 
 export const resolveThreat = (threatId: number) => {
@@ -175,7 +174,7 @@ export const getThreatStats = () => {
 }
 
 export const getIPBlocks = (params?: { page?: number; page_size?: number }) => {
-  return get<ApiResponse<{ data: IPBlock[], pagination: Pagination }>>('/admin/security/ip-blocks', { params: params || {} })
+  return get<ApiResponse<IPBlock[]>>('/admin/security/ip-blocks', { params: params || {} })
 }
 
 export const createIPBlock = (data: { ip_address: string; reason?: string; expires_minutes?: number }) => {

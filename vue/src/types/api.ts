@@ -46,6 +46,7 @@ export interface UpdateUserRequest {
 export interface ChangePasswordRequest {
   old_password: string
   new_password: string
+  verification_code?: string
 }
 
 export interface ProductCreateRequest {
