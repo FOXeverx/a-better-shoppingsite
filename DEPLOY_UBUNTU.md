@@ -111,7 +111,7 @@ ssh root@<公网IP> "git init --bare /opt/shopping_site_pro.git"
 
 # 返回本地，添加远程仓库并推送
 git remote add origin ssh://root@<公网IP>/opt/shopping_site_pro.git
-git push -u origin master
+git push -u origin main
 ```
 
 **方案 B：使用 GitHub / Gitee 私有仓库**
@@ -121,7 +121,7 @@ git push -u origin master
 ```powershell
 git remote add origin git@github.com:<用户名>/shopping_site_pro.git
 # 或 Gitee: git remote add origin git@gitee.com:<用户名>/shopping_site_pro.git
-git push -u origin master
+git push -u origin main
 ```
 
 > 国内服务器推荐 Gitee（码云），访问速度更快。
@@ -607,7 +607,7 @@ cd ..
 # 提交并推送（注意：config.yaml 和 vue/dist 在 .gitignore 中）
 git add .
 git commit -m "fix: 修复 xxx 问题"
-git push origin master
+git push origin main
 ```
 
 ### 服务器操作
@@ -616,7 +616,7 @@ git push origin master
 cd /opt/shopping_site_pro
 
 # 拉取最新代码
-git pull origin master
+git pull origin main
 
 # 如果 requirements.txt 有变更，安装新依赖
 source venv/bin/activate
@@ -639,7 +639,7 @@ systemctl restart shopping_site
 > set -e
 > cd /opt/shopping_site_pro
 > echo "Pulling latest code..."
-> git pull origin master
+> git pull origin main
 > source venv/bin/activate
 > pip install -r requirements.txt -q 2>/dev/null
 > echo "Restarting service..."
