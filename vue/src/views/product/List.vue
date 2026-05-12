@@ -24,13 +24,17 @@
               v-model="filters.minPrice"
               :min="0"
               placeholder="最低"
+              :controls="false"
+              size="small"
               @change="handleFilterChange"
             />
-            <span>-</span>
+            <span class="price-separator">—</span>
             <el-input-number
               v-model="filters.maxPrice"
               :min="0"
               placeholder="最高"
+              :controls="false"
+              size="small"
               @change="handleFilterChange"
             />
           </div>
@@ -224,7 +228,7 @@ watch(() => route.query, () => {
 }
 
 .filter-sidebar {
-  width: 220px;
+  width: 240px;
   flex-shrink: 0;
   
   .filter-section {
@@ -242,8 +246,18 @@ watch(() => route.query, () => {
     .price-inputs {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       margin-bottom: 12px;
+
+      :deep(.el-input-number) {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
+    .price-separator {
+      color: #999;
+      flex-shrink: 0;
     }
   }
 }
