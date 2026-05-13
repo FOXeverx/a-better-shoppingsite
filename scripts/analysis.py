@@ -102,34 +102,23 @@ class UserProfiler:
     
     def _get_region(self, user):
         from app.model.log import LoginLog
+        from scripts.ip_region import get_province
         
         login_logs = self.db.query(LoginLog).filter(
             LoginLog.user_id == user.id
-        ).order_by(LoginLog.created_at.desc()).limit(10).all()
+        ).order_by(LoginLog.created_at.desc()).limit(20).all()
         
         if not login_logs:
             return "未知"
         
-        ip_prefixes = []
+        region_counter = Counter()
         for log in login_logs:
             if log.ip_address:
-                parts = log.ip_address.split('.')
-                if len(parts) >= 1:
-                    ip_prefixes.append(parts[0])
+                province = get_province(log.ip_address)
+                if province:
+                    region_counter[province] += 1
         
-        if not ip_prefixes:
-            return "未知"
-        
-        most_common = Counter(ip_prefixes).most_common(1)[0][0]
-        
-        region_map = {
-            "10": "内网",
-            "127": "本机",
-            "192": "局域网",
-            "172": "局域网",
-        }
-        
-        return region_map.get(most_common, "其他")
+        return region_counter.most_common(1)[0][0] if region_counter else "未知"
     
     def run(self):
         from app.model.user import User

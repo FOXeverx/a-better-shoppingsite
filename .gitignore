@@ -8,6 +8,7 @@ venv/
 node_modules/
 vue/dist/
 uploads/
+scripts/ip2region*.xdb
 *.log
 .vscode/
 .idea/
