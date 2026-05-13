@@ -28,8 +28,10 @@ export interface Anomaly {
   anomaly_type: string
   description: string
   severity: 'low' | 'medium' | 'high'
+  details: any
   is_resolved: boolean
   created_at: string
+  resolved_at: string | null
 }
 
 export interface AdminUser extends User {

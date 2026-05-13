@@ -541,26 +541,45 @@ async def get_anomalies(
     current_user: User = Depends(require_role("admin")),
     db: Session = Depends(get_db)
 ):
-    anomalies = LogService.get_anomaly_logs(
-        db=db,
-        is_resolved=is_resolved,
-        severity=severity,
-        page=page,
-        page_size=page_size
-    )
-    
+    from app.model.log import AnomalyLog
+
+    query = db.query(AnomalyLog)
+    if is_resolved is not None:
+        query = query.filter(AnomalyLog.is_resolved == is_resolved)
+    if severity:
+        try:
+            from app.model.log import AnomalySeverity
+            query = query.filter(AnomalyLog.severity == AnomalySeverity(severity))
+        except ValueError:
+            pass
+
+    total = query.count()
+    anomalies = query.order_by(AnomalyLog.created_at.desc()).offset(
+        (page - 1) * page_size
+    ).limit(page_size).all()
+
     data = []
     for a in anomalies:
         data.append({
             "id": a.id,
             "anomaly_type": a.anomaly_type,
             "description": a.description,
-            "severity": a.severity.value,
+            "severity": a.severity.value if a.severity else a.severity,
+            "details": a.details,
             "is_resolved": a.is_resolved,
-            "created_at": a.created_at.isoformat() if a.created_at else None
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+            "resolved_at": a.resolved_at.isoformat() if a.resolved_at else None
         })
-    
-    return {"success": True, "data": data}
+
+    return {
+        "success": True,
+        "data": data,
+        "pagination": {
+            "page": page,
+            "page_size": page_size,
+            "total": total
+        }
+    }
 
 
 @router.post("/anomalies/{anomaly_id}/resolve")

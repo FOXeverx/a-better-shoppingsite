@@ -1013,6 +1013,15 @@ Authorization: Bearer <token>
 | **方法** | GET |
 | **权限** | Admin |
 
+**查询参数**:
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| is_resolved | boolean | 是否已处理 |
+| severity | string | 严重程度筛选（low/medium/high） |
+| page | int | 页码，默认 1 |
+| page_size | int | 每页数量，默认 20 |
+
 **响应 (200)**:
 
 ```json
@@ -1021,13 +1030,20 @@ Authorization: Bearer <token>
   "data": [
     {
       "id": 1,
-      "anomaly_type": "UNUSUAL_PURCHASE",
-      "description": "User purchased 100 items in 1 minute",
-      "severity": "high",
+      "anomaly_type": "large_order",
+      "description": "大额订单: ¥15000",
+      "severity": "medium",
+      "details": {"order_id": 15, "amount": 15000.0},
       "is_resolved": false,
-      "created_at": "2024-01-01T00:00:00Z"
+      "created_at": "2026-05-13T15:32:29Z",
+      "resolved_at": null
     }
-  ]
+  ],
+  "pagination": {
+    "page": 1,
+    "page_size": 20,
+    "total": 100
+  }
 }
 ```
 

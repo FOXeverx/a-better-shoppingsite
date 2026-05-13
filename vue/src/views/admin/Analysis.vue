@@ -72,7 +72,10 @@
       <el-col :span="12">
         <el-card>
           <template #header>
-            <span>异常告警监控</span>
+            <div class="card-header-row">
+              <span>异常告警监控</span>
+              <span class="header-extra">近24h: {{ anomalyStats.last_24h }}</span>
+            </div>
           </template>
           <div class="anomaly-summary">
             <div class="anomaly-item high">
@@ -88,7 +91,72 @@
               <span class="label">低危</span>
             </div>
           </div>
-          <el-button type="primary" size="small" @click="refreshAnomalies">刷新监控</el-button>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20">
+      <el-col :span="24">
+        <el-card>
+          <template #header>
+            <div class="card-header-row">
+              <span>异常列表</span>
+              <div class="header-actions">
+                <el-checkbox v-model="showUnresolvedOnly" @change="fetchAnomalies">
+                  仅看未处理
+                </el-checkbox>
+                <el-button size="small" @click="fetchAnomalies">刷新</el-button>
+              </div>
+            </div>
+          </template>
+          <el-table :data="anomalyList" v-loading="anomalyLoading" stripe empty-text="暂无异常记录">
+            <el-table-column prop="anomaly_type" label="类型" width="140">
+              <template #default="{ row }">
+                <el-tag size="small" :type="anomalyTypeTag(row.anomaly_type)">{{ anomalyTypeLabel(row.anomaly_type) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="description" label="异常描述" min-width="260" show-overflow-tooltip />
+            <el-table-column prop="severity" label="严重程度" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="severityTag(row.severity)" size="small">{{ severityLabel(row.severity) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="created_at" label="发生时间" width="180">
+              <template #default="{ row }">
+                {{ formatTime(row.created_at) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="is_resolved" label="状态" width="90" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.is_resolved ? 'success' : 'danger'" size="small">
+                  {{ row.is_resolved ? '已处理' : '未处理' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="100" fixed="right" align="center">
+              <template #default="{ row }">
+                <el-popconfirm
+                  v-if="!row.is_resolved"
+                  title="确认处理此异常？"
+                  @confirm="handleResolve(row.id)"
+                >
+                  <template #reference>
+                    <el-button type="primary" size="small">处理</el-button>
+                  </template>
+                </el-popconfirm>
+                <el-button v-else size="small" disabled>已处理</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div v-if="anomalyTotal > anomalyPageSize" class="pagination-wrapper">
+            <el-pagination
+              v-model:current-page="anomalyPage"
+              v-model:page-size="anomalyPageSize"
+              :total="anomalyTotal"
+              layout="total, prev, pager, next"
+              @current-change="fetchAnomalies"
+            />
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -98,7 +166,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import { getUserStats, getAnomalyStats, getSalesPrediction } from '@/api/admin'
+import { getUserStats, getAnomalyStats, getSalesPrediction, getAnomalies, resolveAnomaly } from '@/api/admin'
+import type { Anomaly } from '@/types/admin'
 
 const spendingChartRef = ref<HTMLElement>()
 const regionChartRef = ref<HTMLElement>()
@@ -129,6 +198,93 @@ const prediction = reactive({
   confidence: 0,
   recent_data: [] as { date: string; amount: number }[]
 })
+
+const anomalyList = ref<Anomaly[]>([])
+const anomalyLoading = ref(false)
+const anomalyPage = ref(1)
+const anomalyPageSize = ref(10)
+const anomalyTotal = ref(0)
+const showUnresolvedOnly = ref(true)
+
+function formatTime(dateStr: string) {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleString('zh-CN', { hour12: false })
+}
+
+function severityLabel(severity: string) {
+  const map: Record<string, string> = { high: '高危', medium: '中危', low: '低危' }
+  return map[severity] || severity
+}
+
+function severityTag(severity: string) {
+  const map: Record<string, string> = { high: 'danger', medium: 'warning', low: 'info' }
+  return map[severity] || 'info'
+}
+
+function anomalyTypeLabel(type: string) {
+  const map: Record<string, string> = {
+    large_order: '大额订单',
+    login_failures: '登录失败',
+    low_stock: '库存不足'
+  }
+  return map[type] || type
+}
+
+function anomalyTypeTag(type: string) {
+  const map: Record<string, string> = {
+    large_order: 'warning',
+    login_failures: 'danger',
+    low_stock: ''
+  }
+  return map[type] || ''
+}
+
+async function fetchAnomalies() {
+  anomalyLoading.value = true
+  try {
+    const res = await getAnomalies({
+      page: anomalyPage.value,
+      page_size: anomalyPageSize.value,
+      is_resolved: showUnresolvedOnly.value ? false : undefined
+    })
+    if (res.success) {
+      anomalyList.value = (res.data || []) as Anomaly[]
+      if (res.pagination) {
+        anomalyTotal.value = res.pagination.total
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load anomalies:', error)
+  } finally {
+    anomalyLoading.value = false
+  }
+}
+
+async function handleResolve(id: number) {
+  try {
+    const res = await resolveAnomaly(id)
+    if (res.success) {
+      fetchAnomalies()
+      fetchAnomalyStats()
+    }
+  } catch (error) {
+    console.error('Failed to resolve anomaly:', error)
+  }
+}
+
+async function fetchAnomalyStats() {
+  try {
+    const res = await getAnomalyStats()
+    if (res.success && res.data) {
+      anomalyStats.total = res.data.total
+      anomalyStats.unresolved = res.data.unresolved
+      anomalyStats.by_severity = res.data.by_severity
+      anomalyStats.last_24h = res.data.last_24h
+    }
+  } catch (error) {
+    console.error('Failed to load anomaly stats:', error)
+  }
+}
 
 function initSpendingChart() {
   if (!spendingChartRef.value) return
@@ -222,13 +378,7 @@ async function fetchData() {
       userStats.region_distribution = userRes.data.region_distribution
     }
     
-    const anomalyRes = await getAnomalyStats()
-    if (anomalyRes.success && anomalyRes.data) {
-      anomalyStats.total = anomalyRes.data.total
-      anomalyStats.unresolved = anomalyRes.data.unresolved
-      anomalyStats.by_severity = anomalyRes.data.by_severity
-      anomalyStats.last_24h = anomalyRes.data.last_24h
-    }
+    await fetchAnomalyStats()
     
     const predictRes = await getSalesPrediction()
     if (predictRes.success && predictRes.data) {
@@ -251,12 +401,9 @@ async function fetchData() {
   }
 }
 
-function refreshAnomalies() {
-  fetchData()
-}
-
 onMounted(() => {
   fetchData()
+  fetchAnomalies()
   window.addEventListener('resize', () => {
     spendingChart?.resize()
     regionChart?.resize()
@@ -298,6 +445,29 @@ onMounted(() => {
   .chart-container {
     width: 100%;
     height: 250px;
+  }
+
+  .card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header-extra {
+    font-size: 12px;
+    color: #909399;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .pagination-wrapper {
+    margin-top: 16px;
+    display: flex;
+    justify-content: center;
   }
   
   .predict-info {

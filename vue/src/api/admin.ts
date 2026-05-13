@@ -46,8 +46,8 @@ export const getBrowseLogs = (params?: { page?: number; page_size?: number; prod
   return get<any>('/admin/logs/browse', { params: params || {} })
 }
 
-export const getAnomalies = (params?: { page?: number; page_size?: number }) => {
-  return get<ApiResponse<Anomaly[]>>('/admin/anomalies', { params })
+export const getAnomalies = (params?: { page?: number; page_size?: number; is_resolved?: boolean; severity?: string }) => {
+  return get<ApiResponse<Anomaly[]>>('/admin/anomalies', { params: params || {} })
 }
 
 export const updateUserStatus = (id: number, isActive: boolean) => {
