@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey, Text, Numeric
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey, Text, Numeric, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.model.database import Base
@@ -72,9 +72,12 @@ class Comment(Base):
 
 class ProductRank(Base):
     __tablename__ = "product_rank"
+    __table_args__ = (
+        UniqueConstraint("product_id", "period", name="uk_product_period"),
+    )
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    product_id = Column(Integer, ForeignKey("product.id"), nullable=False, unique=True)
+    product_id = Column(Integer, ForeignKey("product.id"), nullable=False)
     rank_score = Column(Numeric(10, 2), default=0)
     rank_position = Column(Integer, nullable=True)
     period = Column(Enum(ProductRankPeriod), default=ProductRankPeriod.DAILY)
