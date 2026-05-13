@@ -1011,7 +1011,7 @@ Authorization: Bearer <token>
 |------|------|
 | **URL** | `/api/admin/anomalies` |
 | **方法** | GET |
-| **权限** | Admin |
+| **权限** | Admin / Sales |
 
 **查询参数**:
 

@@ -136,7 +136,7 @@
             <el-table-column label="操作" width="100" fixed="right" align="center">
               <template #default="{ row }">
                 <el-popconfirm
-                  v-if="!row.is_resolved"
+                  v-if="!row.is_resolved && isAdmin"
                   title="确认处理此异常？"
                   @confirm="handleResolve(row.id)"
                 >
@@ -144,6 +144,7 @@
                     <el-button type="primary" size="small">处理</el-button>
                   </template>
                 </el-popconfirm>
+                <el-tag v-else-if="!row.is_resolved" type="danger" size="small">未处理</el-tag>
                 <el-button v-else size="small" disabled>已处理</el-button>
               </template>
             </el-table-column>
@@ -167,7 +168,11 @@
 import { ref, reactive, onMounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getUserStats, getAnomalyStats, getSalesPrediction, getAnomalies, resolveAnomaly } from '@/api/admin'
+import { useAuthStore } from '@/stores/auth'
 import type { Anomaly } from '@/types/admin'
+
+const authStore = useAuthStore()
+const isAdmin = authStore.isAdmin
 
 const spendingChartRef = ref<HTMLElement>()
 const regionChartRef = ref<HTMLElement>()

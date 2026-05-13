@@ -538,7 +538,7 @@ async def get_anomalies(
     severity: Optional[str] = Query(None),
     page: int = Query(1),
     page_size: int = Query(20),
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_role("admin", "sales")),
     db: Session = Depends(get_db)
 ):
     from app.model.log import AnomalyLog
